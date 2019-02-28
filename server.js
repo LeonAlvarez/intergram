@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 const request = require('request');
 const compression = require('compression');
 const cors = require('cors');
@@ -6,6 +8,7 @@ const bodyParser = require('body-parser');
 const app = express();
 const http = require('http').Server(app);
 const io = require('socket.io')(http);
+
 
 app.use(express.static('dist', {index: 'demo.html', maxage: '4h'}));
 app.use(bodyParser.json());

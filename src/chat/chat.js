@@ -13,10 +13,13 @@ export default class Chat extends Component {
         super(props);
         if (store.enabled) {
             this.messagesKey = 'messages' + '.' + props.chatId + '.' + props.host;
+            this.state.visitorName = store.get('visitorName') || store.set('visitorName', null);
             this.state.messages = store.get(this.messagesKey) || store.set(this.messagesKey, []);
         } else {
             this.state.messages = [];
+            this.state.visitorName = null;
         }
+        console.log(this.state.visitorName);
     }
 
     componentDidMount() {
@@ -29,17 +32,47 @@ export default class Chat extends Component {
 
         if (!this.state.messages.length) {
             this.writeToMessages({text: this.props.conf.introMessage, from: 'admin'});
+            if (this.state.visitorName) {
+                this.writeToMessages({ text: `Bienvenido ${this.state.visitorName}`, from: 'admin' });
+            }
+                
         }
     }
-
-    render({},state) {
+    handleUserFromKeyPress = (e) => {
+        if (e.keyCode == 13 && this.input.value) {
+            let visitorName = this.input.value;
+            this.input.value = '';
+            store.set('visitorName', visitorName);
+            this.setState({ visitorName });
+            this.writeToMessages({ text: `Bienvenido ${visitorName}`, from: 'admin' });
+        }
+    };
+    renderUserFrom() {
         return (
             <div>
-                <MessageArea messages={state.messages} conf={this.props.conf}/>
+                <ol class="chat">
+                    <li class="admin">
+                        <div class="msg">
+                            <p>Bienvenido, para poder ayudarte necesito tu nombre y apellido</p>
+                        </div>
+                    </li>
+                </ol>
+               
+                <input class="textarea" type="text" placeholder="Escribe tu nombre y apellidos"
+                    ref={(input) => { this.input = input }}
+                    onKeyPress={this.handleUserFromKeyPress}/>
+            </div>
+        );
+    }
+    renderChat() {
+        const state = this.state;
+        return (
+            <div>
+                <MessageArea messages={state.messages} conf={this.props.conf} />
 
                 <input class="textarea" type="text" placeholder={this.props.conf.placeholderText}
-                       ref={(input) => { this.input = input }}
-                       onKeyPress={this.handleKeyPress}/>
+                    ref={(input) => { this.input = input }}
+                    onKeyPress={this.handleKeyPress} />
 
                 <a class="banner" href="https://github.com/idoco/intergram" target="_blank">
                     Powered by <b>Intergram</b>&nbsp;
@@ -47,11 +80,17 @@ export default class Chat extends Component {
             </div>
         );
     }
+    render({},state) {
+        if (state.visitorName) {
+            return this.renderChat();
+        }
+        return this.renderUserFrom();
+    }
 
     handleKeyPress = (e) => {
         if (e.keyCode == 13 && this.input.value) {
             let text = this.input.value;
-            this.socket.send({text, from: 'visitor', visitorName: this.props.conf.visitorName});
+            this.socket.send({text, from: 'visitor', visitorName: this.state.visitorName});
             this.input.value = '';
 
             if (this.autoResponseState === 'pristine') {
